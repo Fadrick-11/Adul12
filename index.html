@@ -19,6 +19,15 @@
     crossorigin="anonymous">
   </script>
 
+  <!-- Cropper.js -->
+  <link 
+    href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" 
+    rel="stylesheet"
+  >
+  <script 
+    src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js">
+  </script>
+
   <!-- PDF libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js"></script>
@@ -26,26 +35,27 @@
   <style>
     body { padding-top:56px; background:#f8f9fa; }
     #testingCard { opacity:.5; pointer-events:none; }
-    .swatch { width:40px; height:40px; border:1px solid #ddd; border-radius:4px; display:inline-block; vertical-align:middle; margin-right:.5rem; }
-    .btn-file { margin-right:.5rem; }
-    .thumb-container { position: relative; display: inline-block; margin:4px; }
-    .thumb { width: 60px; height: 60px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px; }
+    .thumb-container { position: relative; display:inline-block; margin:4px; }
+    .thumb { width:60px; height:60px; object-fit:cover; border:1px solid #ccc; border-radius:4px; }
     .thumb-remove {
-      position: absolute; top: -6px; right: -6px;
-      background: #dc3545; color: white; border: none;
-      border-radius: 50%; width: 20px; height: 20px;
-      font-size: 12px; line-height: 18px; cursor:pointer;
+      position:absolute; top:-6px; right:-6px;
+      background:#dc3545; color:white; border:none;
+      border-radius:50%; width:20px; height:20px;
+      font-size:12px; line-height:18px; cursor:pointer;
     }
   </style>
 </head>
 <body>
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
-    <div class="container-fluid">
-      <span class="navbar-brand">Everest Secura Test</span>
-    </div>
-  </nav>
+  <!-- Logo -->
+  <div class="text-center fixed-top" style="top:0; width:100%; background:white; padding:8px 0; z-index:1030; border-bottom:1px solid #ddd;">
+    <object data="Everest Logo.pdf" type="application/pdf" width="150" height="50">
+      Everest Secura Test
+    </object> :contentReference[oaicite:2]{index=2}&#8203;:contentReference[oaicite:3]{index=3}
+  </div>
+
+  <!-- Navbar spacer -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top" style="top:58px; height:0; visibility:hidden"></nav>
 
   <div class="container py-4">
 
@@ -54,7 +64,7 @@
       <div class="card-header">Calibration (Step 1 of 2)</div>
       <div class="card-body">
 
-        <!-- Pure References -->
+        <!-- Pure refs -->
         <div class="mb-3">
           <label class="form-label"><strong>Pure Reference Strips</strong></label><br>
           <button id="btnAddPureCam" class="btn btn-outline-primary btn-file">
@@ -65,12 +75,11 @@
           </button>
           <span>Count: <strong id="pureCount">0</strong></span>
           <div id="pureList" class="mt-2"></div>
-          <!-- hidden inputs -->
           <input id="pureCam" type="file" accept="image/*" capture="environment" style="display:none">
           <input id="pureGal" type="file" accept="image/*" style="display:none">
         </div>
 
-        <!-- Adulterated References -->
+        <!-- Adulterated refs -->
         <div class="mb-3">
           <label class="form-label"><strong>Adulterated Reference Strips</strong></label><br>
           <button id="btnAddSaltCam" class="btn btn-outline-primary btn-file">
@@ -81,7 +90,6 @@
           </button>
           <span>Count: <strong id="saltCount">0</strong></span>
           <div id="saltList" class="mt-2"></div>
-          <!-- hidden inputs -->
           <input id="saltCam" type="file" accept="image/*" capture="environment" style="display:none">
           <input id="saltGal" type="file" accept="image/*" style="display:none">
         </div>
@@ -113,117 +121,141 @@
 
   </div>
 
+  <!-- Cropper Modal -->
+  <div class="modal fade" id="cropModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Crop Reference Strip</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <img id="cropImage" style="max-width:100%; display:block; margin:auto;">
+        </div>
+        <div class="modal-footer">
+          <button id="btnCrop" class="btn btn-primary">Crop & Use</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script 
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
+  </script>
+
   <script>
   // register SW
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
-  // Color utilities (central-ROI, gray-world, HSV)
+  // Color utils (central-ROI, gray-world, HSV)
   function rgbToHsv(r,g,b){ r/=255;g/=255;b/=255;
-    let mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, h=0, s=mx?d/mx:0;
-    if(d){ switch(mx){case r:h=((g-b)/d + (g<b?6:0));break;
-      case g:h=((b-r)/d + 2);break; case b:h=((r-g)/d + 4);break;} h/=6;}
+    let mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,h=0,s=mx?d/mx:0;
+    if(d){switch(mx){case r:h=((g-b)/d+(g<b?6:0));break;case g:h=((b-r)/d+2);break;case b:h=((r-g)/d+4);break;}h/=6;}
     return [h*360,s];
   }
-  function whiteBalance(p){ let sum=[0,0,0],n=p.length/4;
-    for(let i=0;i<p.length;i+=4){sum[0]+=p[i];sum[1]+=p[i+1];sum[2]+=p[i+2];}
+  function whiteBalance(p){let sum=[0,0,0],n=p.length/4;for(let i=0;i<p.length;i+=4){sum[0]+=p[i];sum[1]+=p[i+1];sum[2]+=p[i+2];}
     let avg=sum.map(x=>x/n),gray=(avg[0]+avg[1]+avg[2])/3,g=avg.map(x=>gray/x);
     for(let i=0;i<p.length;i+=4){p[i]*=g[0];p[i+1]*=g[1];p[i+2]*=g[2];}
   }
-  function computeProfile(file,cb){
-    let img=new Image();
-    img.onload=()=>{
-      let cw=img.width*.5,ch=img.height*.5,sx=(img.width-cw)/2,sy=(img.height-ch)/2;
-      let c=document.createElement('canvas'),ctx=c.getContext('2d');
-      c.width=cw; c.height=ch; ctx.drawImage(img,sx,sy,cw,ch,0,0,cw,ch);
-      let d=ctx.getImageData(0,0,cw,ch).data;
-      whiteBalance(d);
-      let hSum=0,sSum=0,cnt=0;
-      for(let i=0;i<d.length;i+=4){
-        let [h,s]=rgbToHsv(d[i],d[i+1],d[i+2]);
-        hSum+=h; sSum+=s; cnt++;
-      }
-      cb({h:hSum/cnt,s:sSum/cnt});
-    };
-    img.src=URL.createObjectURL(file);
+  function computeProfileFromCanvas(canvas,cb){
+    let data = canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+    whiteBalance(data);
+    let hSum=0,sSum=0,cnt=0;
+    for(let i=0;i<data.length;i+=4){let [h,s]=rgbToHsv(data[i],data[i+1],data[i+2]);hSum+=h;sSum+=s;cnt++;}
+    cb({h:hSum/cnt,s:sSum/cnt});
   }
 
   // State
   const pureRefs = [], saltRefs = [];
-  function updateUI() {
-    // render thumbnails
+  const pureInputs = ['Cam','Gal'].map(s=>document.getElementById('pure'+s));
+  const saltInputs = ['Cam','Gal'].map(s=>document.getElementById('salt'+s));
+  const btnAdd = { pureCam:0,pureGal:1,saltCam:0,saltGal:1 };
+
+  // Cropper
+  let cropper, currentType;
+  const modalEl = document.getElementById('cropModal');
+  const bsModal = new bootstrap.Modal(modalEl);
+  document.getElementById('btnCrop').onclick = ()=>{
+    const canvas = cropper.getCroppedCanvas();
+    computeProfileFromCanvas(canvas, prof=>{
+      const file = dataURLtoFile(canvas.toDataURL(), 'crop.png');
+      if(currentType==='pure') pureRefs.push({file,profile:prof});
+      else                saltRefs.push({file,profile:prof});
+      updateUI();
+      bsModal.hide();
+    });
+  };
+  function dataURLtoFile(dataurl, filename){
+    const arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+          bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    for(let i=0;i<n;i++) u8arr[i] = bstr.charCodeAt(i);
+    return new File([u8arr], filename, {type:mime});
+  }
+
+  // Update UI
+  function updateUI(){
     ['pure','salt'].forEach(type=>{
-      const list = document.getElementById(type+'List');
-      list.innerHTML = '';
-      const arr = type==='pure' ? pureRefs : saltRefs;
-      arr.forEach((ref,i)=>{
-        const div = document.createElement('div');
-        div.className = 'thumb-container';
-        div.innerHTML = `
-          <img src="${URL.createObjectURL(ref.file)}" class="thumb">
+      const list = document.getElementById(type+'List'), arr = type==='pure'?pureRefs:saltRefs;
+      list.innerHTML=''; arr.forEach((r,i)=>{
+        const div=document.createElement('div'); div.className='thumb-container';
+        div.innerHTML=`
+          <img src="${URL.createObjectURL(r.file)}" class="thumb">
           <button class="thumb-remove" data-type="${type}" data-idx="${i}">&times;</button>
         `;
         list.appendChild(div);
       });
       document.getElementById(type+'Count').textContent = arr.length;
     });
-    // enable calibration?
-    document.getElementById('btnCal').disabled =
-      (pureRefs.length + saltRefs.length) < 4;
+    document.getElementById('btnCal').disabled = (pureRefs.length + saltRefs.length) < 4;
   }
 
-  // Remove handler
+  // Remove thumbnail
   document.body.addEventListener('click', e=>{
     if(e.target.classList.contains('thumb-remove')){
-      const type = e.target.dataset.type;
-      const idx  = +e.target.dataset.idx;
-      (type==='pure' ? pureRefs : saltRefs).splice(idx,1);
+      const t=e.target.dataset.type, i=+e.target.dataset.idx;
+      (t==='pure'?pureRefs:saltRefs).splice(i,1);
       updateUI();
     }
   });
 
-  // hookup buttons & inputs
-  [['PureCam','pure'],['PureGal','pure'],['SaltCam','salt'],['SaltGal','salt']]
-    .forEach(([btn,type])=>{
-      const b = document.getElementById('btnAdd'+btn);
-      const inp = document.getElementById(btn.charAt(0).toLowerCase()+btn.slice(1));
-      b.onclick = ()=> inp.click();
-      inp.onchange = e=>{
-        const f = e.target.files[0]; if(!f) return;
-        computeProfile(f, prof=>{
-          (type==='pure'? pureRefs : saltRefs).push({file:f,profile:prof});
-          updateUI();
-        });
-      };
-    });
+  // Hook up pure/salt buttons
+  ['PureCam','PureGal','SaltCam','SaltGal'].forEach(key=>{
+    const type = key.startsWith('Pure')?'pure':'salt';
+    document.getElementById('btnAdd'+key).onclick = ()=> document.getElementById(key.charAt(0).toLowerCase()+key.slice(1)).click();
+    document.getElementById(key.charAt(0).toLowerCase()+key.slice(1)).onchange = e=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      currentType = type;
+      const img=document.getElementById('cropImage');
+      img.src = URL.createObjectURL(file);
+      bsModal.show();
+      modalEl.addEventListener('shown.bs.modal', ()=>{
+        cropper && cropper.destroy();
+        cropper = new Cropper(img,{viewMode:1,autoCropArea:1,aspectRatio:1/1});
+      },{once:true});
+    };
+  });
 
   // Calibration save
-  let calib = null;
+  let calib=null;
   document.getElementById('btnCal').onclick = ()=>{
-    // average profiles
-    const average = arr=>{
-      return arr.reduce((acc, r)=>({
-        h: acc.h + r.profile.h,
-        s: acc.s + r.profile.s
-      }),{h:0,s:0});
-    };
-    let pAvg = average(pureRefs), sAvg = average(saltRefs);
+    const avg = arr=> arr.reduce((a,c)=>({h:a.h+c.profile.h,s:a.s+c.profile.s}),{h:0,s:0});
+    let pAvg = avg(pureRefs), sAvg = avg(saltRefs);
     calib = {
-      pure: { h: pAvg.h/pureRefs.length, s: pAvg.s/pureRefs.length },
-      salt: { h: sAvg.h/saltRefs.length, s: sAvg.s/saltRefs.length }
+      pure: {h:pAvg.h/pureRefs.length, s:pAvg.s/pureRefs.length},
+      salt: {h:sAvg.h/saltRefs.length, s:sAvg.s/saltRefs.length}
     };
-    localStorage.setItem('calib', JSON.stringify(calib));
+    localStorage.setItem('calib',JSON.stringify(calib));
     const tc=document.getElementById('testingCard');
     tc.style.opacity='1'; tc.style.pointerEvents='auto';
-    alert('Calibration saved—now run tests.');
+    alert('Calibration saved—ready for testing.');
   };
 
-  // restore
+  // Restore
   window.addEventListener('load', ()=>{
-    const st=localStorage.getItem('calib');
-    if(st){
-      calib = JSON.parse(st);
+    const st = localStorage.getItem('calib');
+    if(st){ calib=JSON.parse(st);
       document.getElementById('testingCard')
         .style.cssText='opacity:1;pointer-events:auto';
     }
@@ -232,13 +264,13 @@
   // Testing & PDF
   document.getElementById('testImg').onchange = e=>{
     const f=e.target.files[0]; if(!f||!calib) return;
-    const name = document.getElementById('testName').value.trim()||'—';
-    computeProfile(f,test=>{
+    const name=document.getElementById('testName').value.trim()||'—';
+    computeProfile(f, test=>{
       const dP=Math.hypot(test.h-calib.pure.h,test.s-calib.pure.s),
             dS=Math.hypot(test.h-calib.salt.h,test.s-calib.salt.s),
             isPure=dP<dS, conf=Math.abs(dS-dP)/(dS+dP),
             label=isPure?'Pure Milk':'Adulterated Milk';
-      document.getElementById('result').innerHTML =
+      document.getElementById('result').innerHTML=
         `<div id="report" class="card shadow-sm">
            <div class="card-body">
              <h5 class="card-title text-${isPure?'success':'danger'}">${label}</h5>
@@ -255,10 +287,10 @@
 
   document.getElementById('btnPDF').onclick = ()=>{
     html2canvas(document.getElementById('report')).then(canvas=>{
-      const imgData = canvas.toDataURL('image/png'),
-            pdf = new jsPDF({unit:'pt',format:'a4'}),
-            w = pdf.internal.pageSize.getWidth(),
-            h = canvas.height * w / canvas.width;
+      const imgData=canvas.toDataURL('image/png'),
+            pdf=new jsPDF({unit:'pt',format:'a4'}),
+            w=pdf.internal.pageSize.getWidth(),
+            h=canvas.height*w/canvas.width;
       pdf.addImage(imgData,'PNG',0,0,w,h);
       pdf.save('test_report.pdf');
     });
