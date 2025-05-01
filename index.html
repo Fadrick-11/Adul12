@@ -8,15 +8,14 @@
   <meta name="theme-color" content="#0d6efd">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
+  
   <!-- Bootstrap & FontAwesome -->
   <link 
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
     rel="stylesheet"
   >
   <script 
-    src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" 
-    crossorigin="anonymous">
+    src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js">
   </script>
 
   <!-- Cropper.js -->
@@ -33,24 +32,17 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js"></script>
 
   <style>
-    body { padding-top:120px; background:#f8f9fa; }
-    #testingCard { opacity:.5; pointer-events:none; }
+    body { padding-top:140px; background:#f8f9fa; }
+    .logo-bar { position:fixed; top:0; left:0; right:0; background:#fff; 
+      padding:8px 0; text-align:center; border-bottom:1px solid #ddd; z-index:1100; }
+    .logo-bar embed { width:200px; height:60px; }
     .thumb-container { position:relative; display:inline-block; margin:4px; }
     .thumb { width:60px; height:60px; object-fit:cover; border:1px solid #ccc; border-radius:4px; }
-    .thumb-remove {
-      position:absolute; top:-6px; right:-6px;
-      background:#dc3545; color:white; border:none;
-      border-radius:50%; width:20px; height:20px;
-      font-size:12px; line-height:18px; cursor:pointer;
-    }
-    .logo-bar {
-      position: fixed; top:0; left:0; right:0;
-      background:#fff; padding:8px 0; border-bottom:1px solid #ddd;
-      text-align:center; z-index:1100;
-    }
-    .logo-bar embed {
-      width:200px; height:60px;
-    }
+    .thumb-remove { position:absolute; top:-6px; right:-6px; background:#dc3545; color:#fff;
+      border:none; border-radius:50%; width:20px; height:20px; font-size:12px; line-height:18px;
+      cursor:pointer; }
+    #calibrationTab, #analysisTab { display:none; }
+    .tab-pane { padding-top:1rem; }
   </style>
 </head>
 <body>
@@ -60,68 +52,88 @@
     <embed src="Everest Logo.pdf" type="application/pdf">
   </div>
 
-  <div class="container py-4">
+  <div class="container">
 
-    <!-- Calibration -->
-    <div class="card mb-4">
-      <div class="card-header">Calibration (Step 1 of 2)</div>
-      <div class="card-body">
-
-        <!-- Pure refs -->
-        <div class="mb-3">
-          <label class="form-label"><strong>Pure Reference Strips</strong></label><br>
-          <button id="btnAddPureCam" class="btn btn-outline-primary btn-file">
-            <i class="fas fa-camera"></i> Capture
-          </button>
-          <button id="btnAddPureGal" class="btn btn-outline-secondary btn-file">
-            <i class="fas fa-image"></i> Gallery
-          </button>
-          <span>Count: <strong id="pureCount">0</strong></span>
-          <div id="pureList" class="mt-2"></div>
-          <input id="pureCam" type="file" accept="image/*" capture="environment" style="display:none">
-          <input id="pureGal" type="file" accept="image/*" style="display:none">
-        </div>
-
-        <!-- Salted refs -->
-        <div class="mb-3">
-          <label class="form-label"><strong>Adulterated Reference Strips</strong></label><br>
-          <button id="btnAddSaltCam" class="btn btn-outline-primary btn-file">
-            <i class="fas fa-camera"></i> Capture
-          </button>
-          <button id="btnAddSaltGal" class="btn btn-outline-secondary btn-file">
-            <i class="fas fa-image"></i> Gallery
-          </button>
-          <span>Count: <strong id="saltCount">0</strong></span>
-          <div id="saltList" class="mt-2"></div>
-          <input id="saltCam" type="file" accept="image/*" capture="environment" style="display:none">
-          <input id="saltGal" type="file" accept="image/*" style="display:none">
-        </div>
-
-        <button id="btnCal" class="btn btn-primary w-100" disabled>
-          Save Calibration &amp; Unlock Testing
+    <!-- Tabs -->
+    <ul class="nav nav-tabs fixed-top" style="top:80px; background:#fff; z-index:1090;">
+      <li class="nav-item">
+        <button class="nav-link active" id="tab-calibration" data-bs-toggle="tab" data-bs-target="#calibrationTab">
+          <i class="fas fa-sliders-h me-1"></i>Calibration
         </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="tab-analysis" data-bs-toggle="tab" data-bs-target="#analysisTab">
+          <i class="fas fa-vial me-1"></i>Analysis
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+
+      <!-- Calibration Panel -->
+      <div class="tab-pane fade show active" id="calibrationTab">
+        <div class="card mb-4 mt-4">
+          <div class="card-header">Step 1: Calibration (4+ refs required)</div>
+          <div class="card-body">
+
+            <!-- Pure refs -->
+            <div class="mb-3">
+              <label class="form-label"><strong>Pure Reference Strips</strong></label><br>
+              <button id="btnAddPureCam" class="btn btn-outline-primary btn-file">
+                <i class="fas fa-camera"></i> Capture
+              </button>
+              <button id="btnAddPureGal" class="btn btn-outline-secondary btn-file">
+                <i class="fas fa-image"></i> Gallery
+              </button>
+              Count: <strong id="pureCount">0</strong>
+              <div id="pureList" class="mt-2"></div>
+              <input id="pureCam" type="file" accept="image/*" capture="environment" style="display:none">
+              <input id="pureGal" type="file" accept="image/*" style="display:none">
+            </div>
+
+            <!-- Adulterated refs -->
+            <div class="mb-3">
+              <label class="form-label"><strong>Adulterated Reference Strips</strong></label><br>
+              <button id="btnAddSaltCam" class="btn btn-outline-primary btn-file">
+                <i class="fas fa-camera"></i> Capture
+              </button>
+              <button id="btnAddSaltGal" class="btn btn-outline-secondary btn-file">
+                <i class="fas fa-image"></i> Gallery
+              </button>
+              Count: <strong id="saltCount">0</strong>
+              <div id="saltList" class="mt-2"></div>
+              <input id="saltCam" type="file" accept="image/*" capture="environment" style="display:none">
+              <input id="saltGal" type="file" accept="image/*" style="display:none">
+            </div>
+
+            <button id="btnCal" class="btn btn-primary w-100" disabled>
+              Save Calibration
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analysis Panel -->
+      <div class="tab-pane fade" id="analysisTab">
+        <div class="card mb-4 mt-4">
+          <div class="card-header">Step 2: Analysis</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label">Test Name (optional)</label>
+              <input id="testName" type="text" class="form-control" placeholder="e.g. Sample A">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Capture / Select Strip</label>
+              <input id="testImg" type="file" accept="image/*" capture="environment" class="form-control">
+            </div>
+            <div id="result" class="mt-3"></div>
+            <button id="btnPDF" class="btn btn-secondary w-100 mt-3" style="display:none">
+              <i class="fas fa-file-pdf"></i> Generate PDF
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-
-    <!-- Testing -->
-    <div id="testingCard" class="card mb-4">
-      <div class="card-header">Testing (Step 2 of 2)</div>
-      <div class="card-body">
-        <div class="mb-3">
-          <label class="form-label">Test Name (optional)</label>
-          <input id="testName" type="text" class="form-control" placeholder="e.g. Sample A">
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Capture / Select Strip</label>
-          <input id="testImg" type="file" accept="image/*" capture="environment" class="form-control">
-        </div>
-        <div id="result" class="mt-3"></div>
-        <button id="btnPDF" class="btn btn-secondary w-100 mt-3" style="display:none">
-          <i class="fas fa-file-pdf"></i> Generate PDF
-        </button>
-      </div>
-    </div>
-
   </div>
 
   <!-- Cropper Modal -->
@@ -154,33 +166,28 @@
   // Color utils
   function rgbToHsv(r,g,b){ r/=255;g/=255;b/=255;
     let mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, h=0, s=mx?d/mx:0;
-    if(d){ switch(mx){
-      case r: h=((g-b)/d + (g<b?6:0)); break;
-      case g: h=((b-r)/d + 2); break;
-      case b: h=((r-g)/d + 4); break;
-    } h/=6; }
+    if(d){switch(mx){case r:h=((g-b)/d+(g<b?6:0));break;case g:h=((b-r)/d+2);break;case b:h=((r-g)/d+4);break;}h/=6;}
     return [h*360,s];
   }
   function whiteBalance(p){ let sum=[0,0,0],n=p.length/4;
     for(let i=0;i<p.length;i+=4){sum[0]+=p[i];sum[1]+=p[i+1];sum[2]+=p[i+2];}
     let avg=sum.map(x=>x/n), gray=(avg[0]+avg[1]+avg[2])/3, gains=avg.map(x=>gray/x);
-    for(let i=0;i<p.length;i+=4){p[i]*=gains[0]; p[i+1]*=gains[1]; p[i+2]*=gains[2];}
+    for(let i=0;i<p.length;i+=4){p[i]*=gains[0];p[i+1]*=gains[1];p[i+2]*=gains[2];}
   }
   function computeProfileFromCanvas(c,cb){
-    let d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+    const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
     whiteBalance(d);
-    let hSum=0, sSum=0, cnt=0;
+    let h=0,s=0,cnt=0;
     for(let i=0;i<d.length;i+=4){
-      let [h,s]=rgbToHsv(d[i],d[i+1],d[i+2]);
-      hSum+=h; sSum+=s; cnt++;
+      const hs = rgbToHsv(d[i],d[i+1],d[i+2]);
+      h+=hs[0]; s+=hs[1]; cnt++;
     }
-    cb({h:hSum/cnt, s:sSum/cnt});
+    cb({h:h/cnt,s:s/cnt});
   }
 
   // State
   const pureRefs=[], saltRefs=[];
   let calib=null, cropper, currentType;
-  const bsModal = new bootstrap.Modal(document.getElementById('cropModal'));
 
   // Update UI
   function updateUI(){
@@ -204,7 +211,7 @@
   document.body.addEventListener('click', e=>{
     if(e.target.classList.contains('thumb-remove')){
       const t=e.target.dataset.type, i=+e.target.dataset.idx;
-      (t==='pure'? pureRefs : saltRefs).splice(i,1);
+      (t==='pure'?pureRefs:saltRefs).splice(i,1);
       updateUI();
     }
   });
@@ -219,6 +226,7 @@
       currentType=type;
       const img=document.getElementById('cropImage');
       img.src=URL.createObjectURL(file);
+      const bsModal = new bootstrap.Modal(document.getElementById('cropModal'));
       bsModal.show();
       document.getElementById('cropModal').addEventListener('shown.bs.modal', ()=>{
         cropper && cropper.destroy();
@@ -227,109 +235,104 @@
     };
   });
 
-  // Cropper “Crop & Use”
+  // Crop & Use
   document.getElementById('btnCrop').onclick = ()=>{
     const canvas = cropper.getCroppedCanvas();
     computeProfileFromCanvas(canvas, prof=>{
       const file = (()=>{
-        const d=canvas.toDataURL('image/png'),
-          arr=d.split(','), mime=arr[0].match(/:(.*?);/)[1],
-          bstr=atob(arr[1]), n=bstr.length, u8=new Uint8Array(n);
-        for(let i=0;i<n;i++) u8[i]=bstr.charCodeAt(i);
-        return new File([u8], 'crop.png', {type:mime});
+        const d=canvas.toDataURL('image/png'), arr=d.split(','), mime=arr[0].match(/:(.*?);/)[1];
+        const bstr=atob(arr[1]), u8=new Uint8Array(bstr.length);
+        for(let i=0;i<bstr.length;i++) u8[i]=bstr.charCodeAt(i);
+        return new File([u8],'crop.png',{type:mime});
       })();
       if(currentType==='pure') pureRefs.push({file,profile:prof});
       else                 saltRefs.push({file,profile:prof});
       updateUI();
-      bsModal.hide();
+      bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
     });
   };
 
-  // Calibration “Save”
+  // Calibration Save
   document.getElementById('btnCal').onclick = ()=>{
-    const avg = arr=> arr.reduce((a,c)=>({h:a.h+c.profile.h, s:a.s+c.profile.s}), {h:0,s:0});
+    const avg = arr=> arr.reduce((a,c)=>({h:a.h+c.profile.h,s:a.s+c.profile.s}),{h:0,s:0});
     const pA=avg(pureRefs), sA=avg(saltRefs);
-    calib = {
-      pure: {h:pA.h/pureRefs.length, s:pA.s/pureRefs.length},
-      salt: {h:sA.h/saltRefs.length, s:sA.s/saltRefs.length}
-    };
-    localStorage.setItem('calib', JSON.stringify(calib));
-    const tc=document.getElementById('testingCard');
-    tc.style.opacity='1'; tc.style.pointerEvents='auto';
-    alert('Calibration saved—ready for testing.');
+    calib={ pure:{h:pA.h/pureRefs.length,s:pA.s/pureRefs.length},
+            salt:{h:sA.h/saltRefs.length,s:sA.s/saltRefs.length} };
+    localStorage.setItem('calib',JSON.stringify(calib));
+    alert('Calibration saved. Switch to Analysis tab.');
   };
 
-  // Restore calib
+  // Restore
   window.addEventListener('load', ()=>{
-    if(localStorage.getItem('calib')){
-      calib = JSON.parse(localStorage.getItem('calib'));
-      document.getElementById('testingCard')
-        .style.cssText='opacity:1;pointer-events:auto';
-    }
+    const st=localStorage.getItem('calib');
+    if(st) calib=JSON.parse(st);
+    updateUI();
   });
 
-  // Testing: multi-region sampling (5 votes)
-  document.getElementById('testImg').onchange = e=>{
-    const f=e.target.files[0]; if(!f||!calib) return;
-    const name = document.getElementById('testName').value.trim() || '—';
-    const img = new Image();
-    img.onload = ()=>{
-      // full canvas
-      const full = document.createElement('canvas'),
-            fctx = full.getContext('2d');
+  // Analysis: run whenever tab is shown or image input changes
+  function runAnalysis(file){
+    const name=document.getElementById('testName').value.trim()||'—';
+    const img=new Image();
+    img.onload=()=>{
+      const full=document.createElement('canvas'), fctx=full.getContext('2d');
       full.width=img.width; full.height=img.height;
       fctx.drawImage(img,0,0);
-      // define 5 regions
-      const w=img.width, h=img.height,
-            regions=[
-              {sx:0,   sy:0,   sw:w/2,  sh:h/2},
-              {sx:w/2, sy:0,   sw:w/2,  sh:h/2},
-              {sx:0,   sy:h/2, sw:w/2,  sh:h/2},
-              {sx:w/2, sy:h/2, sw:w/2,  sh:h/2},
-              {sx:w*0.25, sy:h*0.25, sw:w*0.5, sh:h*0.5}
-            ];
-      let votes=[], idx=0;
+      const regions=[
+        {sx:0,sy:0,sw:img.width/2,sh:img.height/2},
+        {sx:img.width/2,sy:0,sw:img.width/2,sh:img.height/2},
+        {sx:0,sy:img.height/2,sw:img.width/2,sh:img.height/2},
+        {sx:img.width/2,sy:img.height/2,sw:img.width/2,sh:img.height/2},
+        {sx:img.width*0.25,sy:img.height*0.25,sw:img.width*0.5,sh:img.height*0.5}
+      ];
+      let votes=[]; let idx=0;
       function next(){
         if(idx>=regions.length){
-          // majority vote
-          const pureVotes = votes.filter(v=>'pure'===v).length,
-                saltVotes = votes.length - pureVotes,
-                isPure = pureVotes>saltVotes,
-                conf = Math.max(pureVotes,saltVotes)/votes.length,
-                label = isPure?'Pure Milk':'Adulterated Milk';
+          const pv=votes.filter(v=>'pure'===v).length,
+                sv=votes.length-pv,
+                isPure=pv>sv,
+                conf=Math.max(pv,sv)/votes.length,
+                label=isPure?'Pure Milk':'Adulterated Milk';
           document.getElementById('result').innerHTML=`
             <div id="report" class="card shadow-sm">
-              <div class="card-body">
-                <h5 class="card-title text-${isPure?'success':'danger'}">${label}</h5>
-                <p><strong>Test:</strong> ${name}</p>
-                <p><strong>Confidence:</strong> ${(conf*100).toFixed(1)}%</p>
-                <div><strong>Strip Photo:</strong><br>
-                  <img src="${URL.createObjectURL(f)}" style="max-width:100%;margin-top:.5rem">
-                </div>
-              </div>
+             <div class="card-body">
+               <h5 class="card-title text-${isPure?'success':'danger'}">${label}</h5>
+               <p><strong>Test:</strong> ${name}</p>
+               <p><strong>Confidence:</strong> ${(conf*100).toFixed(1)}%</p>
+               <div><strong>Strip Photo:</strong><br>
+                 <img src="${URL.createObjectURL(file)}" style="max-width:100%;margin-top:.5rem">
+               </div>
+             </div>
             </div>`;
           document.getElementById('btnPDF').style.display='block';
           return;
         }
-        const r = regions[idx++],
-              c = document.createElement('canvas'),
-              ctx = c.getContext('2d');
+        const r=regions[idx++], c=document.createElement('canvas'), ctx=c.getContext('2d');
         c.width=r.sw; c.height=r.sh;
-        ctx.drawImage(full, r.sx, r.sy, r.sw, r.sh, 0, 0, r.sw, r.sh);
+        ctx.drawImage(full, r.sx,r.sy,r.sw,r.sh,0,0,r.sw,r.sh);
         computeProfileFromCanvas(c, prof=>{
-          // classify
-          const dP=Math.hypot(prof.h-calib.pure.h, prof.s-calib.pure.s),
-                dS=Math.hypot(prof.h-calib.salt.h, prof.s-calib.salt.s);
+          const dP=Math.hypot(prof.h-calib.pure.h,prof.s-calib.pure.s),
+                dS=Math.hypot(prof.h-calib.salt.h,prof.s-calib.salt.s);
           votes.push(dP<dS?'pure':'salt');
           next();
         });
       }
       next();
     };
-    img.src = URL.createObjectURL(f);
+    img.src = URL.createObjectURL(file);
+  }
+
+  // Analysis tab show
+  document.getElementById('tab-analysis').addEventListener('shown.bs.tab', ()=>{
+    document.getElementById('testImg').click();
+  });
+
+  // Test image change
+  document.getElementById('testImg').onchange = e=>{
+    const f=e.target.files[0]; if(!f||!calib) return;
+    runAnalysis(f);
   };
 
-  // PDF export
+  // PDF
   document.getElementById('btnPDF').onclick = ()=>{
     html2canvas(document.getElementById('report')).then(canvas=>{
       const imgData=canvas.toDataURL('image/png'),
