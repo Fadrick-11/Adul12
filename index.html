@@ -2,289 +2,142 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
 
-  <!-- App‐style meta for iOS -->
+  <!-- PWA meta for standalone on iOS/Android -->
+  <meta name="theme-color" content="#0d6efd">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0d6efd">
 
+  <link rel="manifest" href="manifest.json">
   <title>Everest Secura Test</title>
 
-  <!-- Bootstrap 5 -->
+  <!-- Bootstrap for quick styling -->
   <link 
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
-    rel="stylesheet" 
-    integrity="sha384-ENjdO4Dr2bkBIFxQpeoYz1H4jQqNiMZ6Nj+8eNV3BzEupF3Ek+czm3l5ckNG2iDb" 
-    crossorigin="anonymous"
+    rel="stylesheet"
   >
-  <!-- Font Awesome -->
-  <link 
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-    rel="stylesheet" 
-    integrity="sha512-papHnaL3VflG0NXZizg2kK8jWMAnUyYBu+NqkOzvEyVm1sQ1yE1iPUvSPFJ0RGSkxDgOwvNsbjnSA5sK+DHjlA==" 
-    crossorigin="anonymous" 
-    referrerpolicy="no-referrer"
-  />
   <style>
-    body { background: #f8f9fa; padding-top: 56px; } /* navbar height */
-    .swatch {
-      width: 40px; height: 40px;
-      border: 1px solid #ddd;
-      display: inline-block;
-      vertical-align: middle;
-      margin-right: .5rem;
-      border-radius: 4px;
-    }
-    .tab-pane { padding-top: 1rem; }
-    .list-samples li { margin-bottom: .5rem; }
+    body { padding-top: 56px; background: #f8f9fa; }
+    .swatch { width:40px; height:40px; border:1px solid #ddd; border-radius:4px; display:inline-block; vertical-align:middle; margin-right:.5rem; }
   </style>
 </head>
 <body>
 
-  <!-- Fixed navbar -->
+  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">
-        <i class="fas fa-vial me-2"></i>
-        Everest Secura Test
-      </a>
+      <span class="navbar-brand mb-0 h1">Everest Secura Test</span>
     </div>
   </nav>
 
+  <!-- Content -->
   <div class="container py-4">
-    <!-- Tabs -->
-    <ul class="nav nav-tabs" id="appTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="cal-tab" data-bs-toggle="tab"
-                data-bs-target="#calibration" type="button" role="tab">
-          <i class="fas fa-sliders-h me-1"></i>Calibration
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="test-tab" data-bs-toggle="tab"
-                data-bs-target="#testing" type="button" role="tab" disabled>
-          <i class="fas fa-vial me-1"></i>Testing
-        </button>
-      </li>
-    </ul>
-
-    <div class="tab-content">
-
-      <!-- Calibration Pane -->
-      <div class="tab-pane fade show active" id="calibration" role="tabpanel">
-        <div class="row gy-3">
-          <!-- Pure samples -->
-          <div class="col-12 col-md-6">
-            <label class="form-label"><strong>
-              <i class="fas fa-check-circle text-success"></i> Pure Samples
-            </strong></label>
-            <input id="pureUpload" type="file" accept="image/*" class="form-control mb-2">
-            <button id="btnAddPure" class="btn btn-success btn-sm mb-3">
-              <i class="fas fa-plus"></i> Add Pure
-            </button>
-            <ul id="pureList" class="list-unstyled list-samples"></ul>
-          </div>
-          <!-- Adulterated samples -->
-          <div class="col-12 col-md-6">
-            <label class="form-label"><strong>
-              <i class="fas fa-exclamation-triangle text-danger"></i> Adulterated Samples
-            </strong></label>
-            <input id="saltUpload" type="file" accept="image/*" class="form-control mb-2">
-            <button id="btnAddSalt" class="btn btn-danger btn-sm mb-3">
-              <i class="fas fa-plus"></i> Add Adulterated
-            </button>
-            <ul id="saltList" class="list-unstyled list-samples"></ul>
-          </div>
-        </div>
-
-        <!-- Show centroids & finish -->
-        <div class="mt-4">
-          <h5>Centroids</h5>
-          <p>
-            <span class="swatch" id="centroidPureSwatch"></span>
-            Pure: <span id="centroidPureLab">—</span>
-          </p>
-          <p>
-            <span class="swatch" id="centroidSaltSwatch"></span>
-            Adulterated: <span id="centroidSaltLab">—</span>
-          </p>
-          <button id="btnFinishCal" class="btn btn-primary" disabled>
-            <i class="fas fa-check-double"></i> Finish Calibration & Enable Testing
-          </button>
-        </div>
+    <div class="card mb-4">
+      <div class="card-header">Calibration (Step 1)</div>
+      <div class="card-body">
+        <input id="pureImg" type="file" accept="image/*" class="form-control mb-2" />
+        <input id="saltImg" type="file" accept="image/*" class="form-control mb-2" />
+        <button id="btnCal" class="btn btn-primary w-100">Save Calibration</button>
       </div>
-
-      <!-- Testing Pane -->
-      <div class="tab-pane fade" id="testing" role="tabpanel">
-        <div class="mb-3">
-          <label class="form-label">
-            <i class="fas fa-camera"></i> Capture/Test Strip
-          </label>
-          <input id="testUpload" type="file" accept="image/*" capture="environment"
-                 class="form-control">
-        </div>
-        <div id="testOutput" class="p-3 border rounded bg-white">
-          <h5>Result: <span id="testResultLabel">—</span></h5>
-          <p>
-            Distance to Pure: <span id="distPure">—</span><br>
-            Distance to Adulterated: <span id="distSalt">—</span><br>
-            Confidence: <span id="confLabel">—</span><br>
-            Detected Color: <span class="swatch" id="testSwatch"></span>
-          </p>
-        </div>
-      </div>
-
     </div>
 
-    <!-- Export -->
-    <div class="mt-4 text-end">
-      <button id="btnExport" class="btn btn-info">
-        <i class="fas fa-file-csv me-1"></i> Download CSV
-      </button>
+    <div class="card mb-4" id="testingCard" style="opacity:.5;pointer-events:none">
+      <div class="card-header">Testing (Step 2)</div>
+      <div class="card-body">
+        <input id="testImg" type="file" accept="image/*" capture="environment" class="form-control" />
+        <div id="result" class="mt-3"></div>
+      </div>
     </div>
   </div>
 
-  <!-- Bootstrap 5 Bundle -->
-  <script 
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" 
-    integrity="sha384-ENjdO4Dr2bkBIFxQpeoYz1H4jQqNiMZ6Nj+8eNV3BzEupF3Ek+czm3l5ckNG2iDb" 
-    crossorigin="anonymous">
-  </script>
-
+  <!-- Service‐worker registration & JS logic -->
   <script>
-  // === color conversions & ΔE (same as before) ===
-  function rgbToXyz(r,g,b){
-    r/=255; g/=255; b/=255;
-    [r,g,b] = [r,g,b].map(c=> c>0.04045
-      ? Math.pow((c+0.055)/1.055,2.4)
-      : c/12.92
-    );
-    return {
-      x: r*0.4124+g*0.3576+b*0.1805,
-      y: r*0.2126+g*0.7152+b*0.0722,
-      z: r*0.0193+g*0.1192+b*0.9505
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+
+  // Simple RGB→HSV + gray-world + average Hue/Sat classifier
+  function rgbToHsv(r,g,b){ r/=255;g/=255; b/=255;
+    let mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, h=0, s=mx?d/mx:0, v=mx;
+    if(d){ switch(mx){
+      case r: h=((g-b)/d + (g<b?6:0)); break;
+      case g: h=((b-r)/d + 2); break;
+      case b: h=((r-g)/d + 4); break;
+    } h/=6; }
+    return [h*360,s,v];
+  }
+  function whiteBalance(pixels){
+    let sum=[0,0,0], n=pixels.length/4;
+    for(let i=0;i<pixels.length;i+=4){
+      sum[0]+=pixels[i]; sum[1]+=pixels[i+1]; sum[2]+=pixels[i+2];
+    }
+    let avg=sum.map(x=>x/n), gray=(avg[0]+avg[1]+avg[2])/3,
+        gains=avg.map(x=>gray/x);
+    for(let i=0;i<pixels.length;i+=4){
+      pixels[i]*=gains[0]; pixels[i+1]*=gains[1]; pixels[i+2]*=gains[2];
+    }
+  }
+  function computeProfile(file, cb){
+    let img=new Image();
+    img.onload = ()=>{
+      let c=document.createElement('canvas'), ctx=c.getContext('2d');
+      c.width=img.width; c.height=img.height;
+      ctx.drawImage(img,0,0);
+      let data=ctx.getImageData(0,0,c.width,c.height).data;
+      whiteBalance(data);
+      let hSum=0,sSum=0,count=0;
+      for(let i=0;i<data.length;i+=4){
+        let [h,s]=rgbToHsv(data[i],data[i+1],data[i+2]);
+        hSum+=h; sSum+=s; count++;
+      }
+      cb({h:hSum/count, s:sSum/count});
     };
-  }
-  function xyzToLab({x,y,z}){
-    const Xn=0.95047, Yn=1, Zn=1.08883;
-    let fx=x/Xn, fy=y/Yn, fz=z/Zn;
-    [fx,fy,fz] = [fx,fy,fz].map(t=>
-      t>0.008856 ? Math.cbrt(t) : (7.787*t+16/116)
-    );
-    return {
-      L:116*fy-16,
-      a:500*(fx-fy),
-      b:200*(fy-fz)
-    };
-  }
-  function rgbToLab(r,g,b){ return xyzToLab(rgbToXyz(r,g,b)); }
-  function deltaE(l1,l2){
-    return Math.hypot(l1.L-l2.L, l1.a-l2.a, l1.b-l2.b);
+    img.src=URL.createObjectURL(file);
   }
 
-  // === compute average Lab of center 50% ROI ===
-  function computeAvgLab(img, cb){
-    const cw=img.width*0.5, ch=img.height*0.5;
-    const sx=(img.width-cw)/2, sy=(img.height-ch)/2;
-    const c=document.createElement('canvas'),
-          ctx=c.getContext('2d');
-    c.width=cw; c.height=ch;
-    ctx.drawImage(img,sx,sy,cw,ch,0,0,cw,ch);
-    const data=ctx.getImageData(0,0,cw,ch).data;
-    // grey-world white-balance
-    let sum=[0,0,0], cnt=data.length/4;
-    for(let i=0;i<data.length;i+=4){
-      sum[0]+=data[i]; sum[1]+=data[i+1]; sum[2]+=data[i+2];
-    }
-    let avg=sum.map(v=>v/cnt), gray=(avg[0]+avg[1]+avg[2])/3;
-    let gains=avg.map(v=>gray/v);
-    for(let i=0;i<data.length;i+=4){
-      data[i]*=gains[0]; data[i+1]*=gains[1]; data[i+2]*=gains[2];
-    }
-    let sumL=0, sumA=0, sumB=0;
-    for(let i=0;i<data.length;i+=4){
-      const lab=rgbToLab(data[i],data[i+1],data[i+2]);
-      sumL+=lab.L; sumA+=lab.a; sumB+=lab.b;
-    }
-    cb({ L: sumL/cnt, a: sumA/cnt, b: sumB/cnt });
-  }
-
-  // === state ===
-  let pureLabs=[], saltLabs=[], testRecords=[];
-
-  function updateCalibrationUI(){
-    const pList=document.getElementById('pureList'),
-          sList=document.getElementById('saltList');
-    pList.innerHTML=''; saltLabs.forEach((lab,i)=>{
-      // omitted for brevity (same as before)
+  let calib;
+  document.getElementById('btnCal').onclick = ()=>{
+    let p=document.getElementById('pureImg').files[0],
+        s=document.getElementById('saltImg').files[0];
+    if(!p||!s) return alert('Upload both reference images.');
+    computeProfile(p, pure=>{
+      computeProfile(s, salt=>{
+        calib={pure,salt};
+        localStorage.setItem('calib', JSON.stringify(calib));
+        let t=document.getElementById('testingCard');
+        t.style.opacity=1; t.style.pointerEvents='auto';
+        alert('Calibration saved—proceed to testing.');
+      });
     });
-    // recompute centroids, enable finish...
-    const btnFinish=document.getElementById('btnFinishCal');
-    if(pureLabs.length && saltLabs.length){
-      // compute & show centroids...
-      btnFinish.disabled=false;
-    } else {
-      btnFinish.disabled=true;
-    }
-  }
-
-  // === calibration handlers ===
-  document.getElementById('btnAddPure').onclick=()=>{
-    const f=document.getElementById('pureUpload').files[0];
-    if(!f) return alert('Select a pure image');
-    const img=new Image();
-    img.onload=()=>computeAvgLab(img,lab=>{
-      pureLabs.push(lab);
-      updateCalibrationUI();
-    });
-    img.src=URL.createObjectURL(f);
-  };
-  document.getElementById('btnAddSalt').onclick=()=>{
-    const f=document.getElementById('saltUpload').files[0];
-    if(!f) return alert('Select an adulterated image');
-    const img=new Image();
-    img.onload=()=>computeAvgLab(img,lab=>{
-      saltLabs.push(lab);
-      updateCalibrationUI();
-    });
-    img.src=URL.createObjectURL(f);
-  };
-  document.getElementById('btnFinishCal').onclick=()=>{
-    localStorage.setItem('pureLabs',JSON.stringify(pureLabs));
-    localStorage.setItem('saltLabs',JSON.stringify(saltLabs));
-    const tab=new bootstrap.Tab(document.querySelector('#test-tab'));
-    tab.enable(); tab.show();
   };
 
-  // === load on start ===
+  // load existing calibration
   window.addEventListener('load',()=>{
-    try {
-      pureLabs=JSON.parse(localStorage.getItem('pureLabs'))||[];
-      saltLabs=JSON.parse(localStorage.getItem('saltLabs'))||[];
-    } catch{}
-    if(pureLabs.length && saltLabs.length){
-      updateCalibrationUI();
-      document.querySelector('#test-tab').removeAttribute('disabled');
+    let stored=localStorage.getItem('calib');
+    if(stored){ calib=JSON.parse(stored);
+      let t=document.getElementById('testingCard');
+      t.style.opacity=1; t.style.pointerEvents='auto';
     }
   });
 
-  // === testing handler ===
-  document.getElementById('testUpload').onchange=e=>{
-    const f=e.target.files[0];
-    if(!f) return;
-    const img=new Image();
-    img.onload=()=>computeAvgLab(img,labTest=>{
-      // compute distances, show result...
+  document.getElementById('testImg').onchange = e=>{
+    let f=e.target.files[0];
+    if(!f||!calib) return;
+    computeProfile(f, test=>{
+      let dPure=Math.hypot(test.h-calib.pure.h,test.s-calib.pure.s),
+          dSalt=Math.hypot(test.h-calib.salt.h,test.s-calib.salt.s),
+          isPure=dPure<dSalt,
+          conf=Math.abs(dSalt-dPure)/(dSalt+dPure);
+      document.getElementById('result').innerHTML = `
+        <h5>Result: <span class="text-${isPure?'success':'danger'}">
+          ${isPure?'PASS':'FAIL'}
+        </span></h5>
+        <p>Confidence: ${(conf*100).toFixed(1)}%</p>
+      `;
     });
-    img.src=URL.createObjectURL(f);
-  };
-
-  // === export CSV ===
-  document.getElementById('btnExport').onclick=()=>{
-    if(!testRecords.length) return alert('No tests yet');
-    // build CSV & download...
   };
   </script>
+
 </body>
 </html>
