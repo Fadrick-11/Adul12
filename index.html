@@ -28,6 +28,14 @@
     #testingCard { opacity:.5; pointer-events:none; }
     .swatch { width:40px; height:40px; border:1px solid #ddd; border-radius:4px; display:inline-block; vertical-align:middle; margin-right:.5rem; }
     .btn-file { margin-right:.5rem; }
+    .thumb-container { position: relative; display: inline-block; margin:4px; }
+    .thumb { width: 60px; height: 60px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px; }
+    .thumb-remove {
+      position: absolute; top: -6px; right: -6px;
+      background: #dc3545; color: white; border: none;
+      border-radius: 50%; width: 20px; height: 20px;
+      font-size: 12px; line-height: 18px; cursor:pointer;
+    }
   </style>
 </head>
 <body>
@@ -46,7 +54,7 @@
       <div class="card-header">Calibration (Step 1 of 2)</div>
       <div class="card-body">
 
-        <!-- Pure -->
+        <!-- Pure References -->
         <div class="mb-3">
           <label class="form-label"><strong>Pure Reference Strips</strong></label><br>
           <button id="btnAddPureCam" class="btn btn-outline-primary btn-file">
@@ -56,11 +64,13 @@
             <i class="fas fa-image"></i> Gallery
           </button>
           <span>Count: <strong id="pureCount">0</strong></span>
+          <div id="pureList" class="mt-2"></div>
+          <!-- hidden inputs -->
           <input id="pureCam" type="file" accept="image/*" capture="environment" style="display:none">
           <input id="pureGal" type="file" accept="image/*" style="display:none">
         </div>
 
-        <!-- Adulterated -->
+        <!-- Adulterated References -->
         <div class="mb-3">
           <label class="form-label"><strong>Adulterated Reference Strips</strong></label><br>
           <button id="btnAddSaltCam" class="btn btn-outline-primary btn-file">
@@ -70,6 +80,8 @@
             <i class="fas fa-image"></i> Gallery
           </button>
           <span>Count: <strong id="saltCount">0</strong></span>
+          <div id="saltList" class="mt-2"></div>
+          <!-- hidden inputs -->
           <input id="saltCam" type="file" accept="image/*" capture="environment" style="display:none">
           <input id="saltGal" type="file" accept="image/*" style="display:none">
         </div>
@@ -107,32 +119,24 @@
     navigator.serviceWorker.register('sw.js');
   }
 
-  // — Color utilities (central-ROI, gray-world, HSV) —
+  // Color utilities (central-ROI, gray-world, HSV)
   function rgbToHsv(r,g,b){ r/=255;g/=255;b/=255;
     let mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, h=0, s=mx?d/mx:0;
-    if(d){ switch(mx){
-      case r: h=((g-b)/d + (g<b?6:0)); break;
-      case g: h=((b-r)/d + 2); break;
-      case b: h=((r-g)/d + 4); break;
-    } h/=6; }
+    if(d){ switch(mx){case r:h=((g-b)/d + (g<b?6:0));break;
+      case g:h=((b-r)/d + 2);break; case b:h=((r-g)/d + 4);break;} h/=6;}
     return [h*360,s];
   }
   function whiteBalance(p){ let sum=[0,0,0],n=p.length/4;
-    for(let i=0;i<p.length;i+=4){
-      sum[0]+=p[i];sum[1]+=p[i+1];sum[2]+=p[i+2];
-    }
+    for(let i=0;i<p.length;i+=4){sum[0]+=p[i];sum[1]+=p[i+1];sum[2]+=p[i+2];}
     let avg=sum.map(x=>x/n),gray=(avg[0]+avg[1]+avg[2])/3,g=avg.map(x=>gray/x);
-    for(let i=0;i<p.length;i+=4){
-      p[i]*=g[0];p[i+1]*=g[1];p[i+2]*=g[2];
-    }
+    for(let i=0;i<p.length;i+=4){p[i]*=g[0];p[i+1]*=g[1];p[i+2]*=g[2];}
   }
   function computeProfile(file,cb){
     let img=new Image();
     img.onload=()=>{
       let cw=img.width*.5,ch=img.height*.5,sx=(img.width-cw)/2,sy=(img.height-ch)/2;
       let c=document.createElement('canvas'),ctx=c.getContext('2d');
-      c.width=cw; c.height=ch;
-      ctx.drawImage(img,sx,sy,cw,ch,0,0,cw,ch);
+      c.width=cw; c.height=ch; ctx.drawImage(img,sx,sy,cw,ch,0,0,cw,ch);
       let d=ctx.getImageData(0,0,cw,ch).data;
       whiteBalance(d);
       let hSum=0,sSum=0,cnt=0;
@@ -142,78 +146,104 @@
       }
       cb({h:hSum/cnt,s:sSum/cnt});
     };
-    img.src = URL.createObjectURL(file);
+    img.src=URL.createObjectURL(file);
   }
 
-  // — State for references —
-  const pureLabs=[], saltLabs=[];
-  function updateCounts(){
-    document.getElementById('pureCount').textContent = pureLabs.length;
-    document.getElementById('saltCount').textContent = saltLabs.length;
+  // State
+  const pureRefs = [], saltRefs = [];
+  function updateUI() {
+    // render thumbnails
+    ['pure','salt'].forEach(type=>{
+      const list = document.getElementById(type+'List');
+      list.innerHTML = '';
+      const arr = type==='pure' ? pureRefs : saltRefs;
+      arr.forEach((ref,i)=>{
+        const div = document.createElement('div');
+        div.className = 'thumb-container';
+        div.innerHTML = `
+          <img src="${URL.createObjectURL(ref.file)}" class="thumb">
+          <button class="thumb-remove" data-type="${type}" data-idx="${i}">&times;</button>
+        `;
+        list.appendChild(div);
+      });
+      document.getElementById(type+'Count').textContent = arr.length;
+    });
+    // enable calibration?
     document.getElementById('btnCal').disabled =
-      (pureLabs.length + saltLabs.length) < 4;
+      (pureRefs.length + saltRefs.length) < 4;
   }
 
-  // hookup ref buttons
+  // Remove handler
+  document.body.addEventListener('click', e=>{
+    if(e.target.classList.contains('thumb-remove')){
+      const type = e.target.dataset.type;
+      const idx  = +e.target.dataset.idx;
+      (type==='pure' ? pureRefs : saltRefs).splice(idx,1);
+      updateUI();
+    }
+  });
+
+  // hookup buttons & inputs
   [['PureCam','pure'],['PureGal','pure'],['SaltCam','salt'],['SaltGal','salt']]
-    .forEach(([btn,inputType])=>{
-      const btnEl = document.getElementById(`btnAdd${btn}`);
-      const inpEl = document.getElementById(`${btn.charAt(0).toLowerCase()+btn.slice(1)}`);
-      btnEl.onclick = ()=> inpEl.click();
-      inpEl.onchange = e=>{
-        const f=e.target.files[0];
-        if(!f) return;
+    .forEach(([btn,type])=>{
+      const b = document.getElementById('btnAdd'+btn);
+      const inp = document.getElementById(btn.charAt(0).toLowerCase()+btn.slice(1));
+      b.onclick = ()=> inp.click();
+      inp.onchange = e=>{
+        const f = e.target.files[0]; if(!f) return;
         computeProfile(f, prof=>{
-          if(inputType==='pure') pureLabs.push(prof);
-          else saltLabs.push(prof);
-          updateCounts();
+          (type==='pure'? pureRefs : saltRefs).push({file:f,profile:prof});
+          updateUI();
         });
       };
     });
 
-  // — Calibration save —
-  let calib=null;
-  document.getElementById('btnCal').onclick=()=>{
-    calib = {
-      pure: pureLabs.reduce((a,c)=>({h:a.h+c.h,s:a.s+c.s}),{h:0,s:0}),
-      salt: saltLabs.reduce((a,c)=>({h:a.h+c.h,s:a.s+c.s}), {h:0,s:0})
+  // Calibration save
+  let calib = null;
+  document.getElementById('btnCal').onclick = ()=>{
+    // average profiles
+    const average = arr=>{
+      return arr.reduce((acc, r)=>({
+        h: acc.h + r.profile.h,
+        s: acc.s + r.profile.s
+      }),{h:0,s:0});
     };
-    calib.pure.h/=pureLabs.length;  calib.pure.s/=pureLabs.length;
-    calib.salt.h/=saltLabs.length;  calib.salt.s/=saltLabs.length;
-    localStorage.setItem('calib',JSON.stringify(calib));
+    let pAvg = average(pureRefs), sAvg = average(saltRefs);
+    calib = {
+      pure: { h: pAvg.h/pureRefs.length, s: pAvg.s/pureRefs.length },
+      salt: { h: sAvg.h/saltRefs.length, s: sAvg.s/saltRefs.length }
+    };
+    localStorage.setItem('calib', JSON.stringify(calib));
     const tc=document.getElementById('testingCard');
     tc.style.opacity='1'; tc.style.pointerEvents='auto';
-    alert('Calibration saved—now you can run tests.');
+    alert('Calibration saved—now run tests.');
   };
 
-  // restore on load
-  window.addEventListener('load',()=>{
+  // restore
+  window.addEventListener('load', ()=>{
     const st=localStorage.getItem('calib');
     if(st){
-      calib=JSON.parse(st);
+      calib = JSON.parse(st);
       document.getElementById('testingCard')
         .style.cssText='opacity:1;pointer-events:auto';
     }
   });
 
-  // — Testing & PDF —
-  document.getElementById('testImg').onchange=e=>{
-    const f=e.target.files[0];
-    if(!f||!calib) return;
+  // Testing & PDF
+  document.getElementById('testImg').onchange = e=>{
+    const f=e.target.files[0]; if(!f||!calib) return;
     const name = document.getElementById('testName').value.trim()||'—';
     computeProfile(f,test=>{
-      const dP=Math.hypot(test.h-calib.pure.h, test.s-calib.pure.s),
-            dS=Math.hypot(test.h-calib.salt.h, test.s-calib.salt.s),
-            isPure = dP<dS, conf=Math.abs(dS-dP)/(dS+dP),
-            label = isPure?'Pure Milk':'Adulterated Milk';
-      document.getElementById('result').innerHTML=
+      const dP=Math.hypot(test.h-calib.pure.h,test.s-calib.pure.s),
+            dS=Math.hypot(test.h-calib.salt.h,test.s-calib.salt.s),
+            isPure=dP<dS, conf=Math.abs(dS-dP)/(dS+dP),
+            label=isPure?'Pure Milk':'Adulterated Milk';
+      document.getElementById('result').innerHTML =
         `<div id="report" class="card shadow-sm">
            <div class="card-body">
-             <h5 class="card-title text-${isPure?'success':'danger'}">
-               ${label}
-             </h5>
-             <p class="card-text"><strong>Test:</strong> ${name}</p>
-             <p class="card-text"><strong>Confidence:</strong> ${(conf*100).toFixed(1)}%</p>
+             <h5 class="card-title text-${isPure?'success':'danger'}">${label}</h5>
+             <p><strong>Test:</strong> ${name}</p>
+             <p><strong>Confidence:</strong> ${(conf*100).toFixed(1)}%</p>
              <div><strong>Strip Photo:</strong><br>
                <img src="${URL.createObjectURL(f)}" style="max-width:100%;margin-top:.5rem">
              </div>
@@ -223,16 +253,15 @@
     });
   };
 
-  document.getElementById('btnPDF').onclick=()=>{
-    html2canvas(document.getElementById('report'))
-      .then(canvas=>{
-        const imgData = canvas.toDataURL('image/png'),
-              pdf = new jsPDF(),
-              w = pdf.internal.pageSize.getWidth(),
-              h = canvas.height * w / canvas.width;
-        pdf.addImage(imgData,'PNG',0,0,w,h);
-        pdf.save('test_report.pdf');
-      });
+  document.getElementById('btnPDF').onclick = ()=>{
+    html2canvas(document.getElementById('report')).then(canvas=>{
+      const imgData = canvas.toDataURL('image/png'),
+            pdf = new jsPDF({unit:'pt',format:'a4'}),
+            w = pdf.internal.pageSize.getWidth(),
+            h = canvas.height * w / canvas.width;
+      pdf.addImage(imgData,'PNG',0,0,w,h);
+      pdf.save('test_report.pdf');
+    });
   };
   </script>
 </body>
