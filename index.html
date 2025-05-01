@@ -6,47 +6,18 @@
   <title>Everest Secura Test</title>
 
   <!-- PWA meta -->
-  <meta name="theme-color" content="#0056b3">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d6efd">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  <link rel="manifest" href="manifest.json">
-
-  <!-- Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
-
   <!-- Bootstrap CSS -->
-  <link 
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
     rel="stylesheet"
-    integrity="sha384-ENjdO4Dr2bkBIFxQpeoYz1H4jQqNiMZ6Nj+8eNV3BzEupF3Ek+czm3l5ckNG2iDb" 
-    crossorigin="anonymous"
   >
-
   <style>
-    /* Global font */
-    body, input, button {
-      font-family: 'Montserrat', sans-serif;
-    }
-    /* Gradient navbar */
-    .navbar {
-      background: linear-gradient(90deg, #0056b3, #3b82f6);
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    /* Cards */
-    .card {
-      border: none;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    /* Buttons */
-    .btn-primary {
-      border-radius: 8px;
-    }
-    .btn {
-      font-weight: 600;
-    }
-    /* Swatch */
+    body { padding-top: 56px; background: #f8f9fa; }
     .swatch {
       width:40px; height:40px;
       border:1px solid #ddd;
@@ -55,59 +26,70 @@
       vertical-align:middle;
       margin-right:.5rem;
     }
-    /* Page padding under fixed navbar */
-    body { padding-top: 56px; background: #f1f5f9; }
-    /* Testing disabled style */
-    #testingCard[disabled] {
-      opacity: .5;
-      pointer-events: none;
+    #testingCard {
+      opacity:.5;
+      pointer-events:none;
     }
   </style>
 </head>
 <body>
 
-  <!-- Fixed Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
     <div class="container-fluid">
-      <span class="navbar-brand mb-0 h1">
-        Everest Secura Test
-      </span>
+      <span class="navbar-brand">Everest Secura Test</span>
     </div>
   </nav>
 
   <div class="container py-4">
 
-    <!-- Calibration Card -->
+    <!-- Calibration -->
     <div class="card mb-4">
-      <div class="card-header bg-white">
-        <h5 class="mb-0">Calibration (Step 1 of 2)</h5>
-      </div>
+      <div class="card-header">Calibration (Step 1 of 2)</div>
       <div class="card-body">
         <div class="mb-3">
-          <label class="form-label">Reference “Pure” Strip</label>
-          <input id="pureImg" type="file" accept="image/*" class="form-control">
+          <label class="form-label">“Pure” Reference Strip</label>
+          <input
+            id="pureImg"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            class="form-control"
+          >
         </div>
         <div class="mb-3">
-          <label class="form-label">Reference “Adulterated” Strip</label>
-          <input id="saltImg" type="file" accept="image/*" class="form-control">
+          <label class="form-label">“Adulterated” Reference Strip</label>
+          <input
+            id="saltImg"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            class="form-control"
+          >
         </div>
-        <button id="btnCal" class="btn btn-primary w-100">Save Calibration &amp; Unlock Testing</button>
+        <button id="btnCal" class="btn btn-primary w-100">
+          Save Calibration &amp; Unlock Testing
+        </button>
       </div>
     </div>
 
-    <!-- Testing Card -->
-    <div id="testingCard" class="card mb-4" disabled>
-      <div class="card-header bg-white">
-        <h5 class="mb-0">Testing (Step 2 of 2)</h5>
-      </div>
+    <!-- Testing -->
+    <div id="testingCard" class="card mb-4">
+      <div class="card-header">Testing (Step 2 of 2)</div>
       <div class="card-body">
         <div class="mb-3">
-          <label class="form-label">Test Name</label>
-          <input id="testName" type="text" class="form-control" placeholder="Enter test name">
+          <label class="form-label">Test Name (optional)</label>
+          <input id="testName" type="text" class="form-control" placeholder="e.g. Sample A">
         </div>
         <div class="mb-3">
           <label class="form-label">Capture / Select Strip</label>
-          <input id="testImg" type="file" accept="image/*" capture="environment" class="form-control">
+          <input
+            id="testImg"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            class="form-control"
+          >
         </div>
         <div id="result" class="mt-3"></div>
       </div>
@@ -115,98 +97,112 @@
 
   </div>
 
-  <!-- Service Worker & Logic -->
   <script>
+  // register SW
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
   }
 
-  // RGB→HSV, gray-world WB, average Hue/Sat
-  function rgbToHsv(r,g,b){ r/=255;g/=255; b/=255;
+  // RGB→HSV
+  function rgbToHsv(r,g,b){ r/=255;g/=255;b/=255;
     let mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, h=0, s=mx?d/mx:0, v=mx;
-    if(d){ switch(mx){
-      case r: h=((g-b)/d + (g<b?6:0)); break;
-      case g: h=((b-r)/d + 2); break;
-      case b: h=((r-g)/d + 4); break;
-    } h/=6; }
+    if(d){
+      switch(mx){
+        case r: h=((g-b)/d + (g<b?6:0)); break;
+        case g: h=((b-r)/d + 2); break;
+        case b: h=((r-g)/d + 4); break;
+      }
+      h/=6;
+    }
     return [h*360,s,v];
   }
-  function whiteBalance(pixels){
-    let sum=[0,0,0], n=pixels.length/4;
-    for(let i=0;i<pixels.length;i+=4){
-      sum[0]+=pixels[i]; sum[1]+=pixels[i+1]; sum[2]+=pixels[i+2];
+
+  // Gray-world white-balance
+  function whiteBalance(pix){
+    let sum=[0,0,0], n=pix.length/4;
+    for(let i=0;i<pix.length;i+=4){
+      sum[0]+=pix[i]; sum[1]+=pix[i+1]; sum[2]+=pix[i+2];
     }
-    let avg=sum.map(x=>x/n), gray=(avg[0]+avg[1]+avg[2])/3,
-        gains=avg.map(x=>gray/x);
-    for(let i=0;i<pixels.length;i+=4){
-      pixels[i]*=gains[0]; pixels[i+1]*=gains[1]; pixels[i+2]*=gains[2];
+    let avg=sum.map(x=>x/n), gray=(avg[0]+avg[1]+avg[2])/3;
+    let gains=avg.map(x=>gray/x);
+    for(let i=0;i<pix.length;i+=4){
+      pix[i]*=gains[0];
+      pix[i+1]*=gains[1];
+      pix[i+2]*=gains[2];
     }
   }
+
+  // Compute average H/S over central 50% ROI
   function computeProfile(file, cb){
-    const img = new Image();
+    let img = new Image();
     img.onload = ()=>{
-      const c = document.createElement('canvas'),
-            ctx = c.getContext('2d');
-      c.width=img.width; c.height=img.height;
-      ctx.drawImage(img,0,0);
-      const data = ctx.getImageData(0,0,c.width,c.height).data;
+      // sample centre-box
+      let cw = img.width * 0.5, ch = img.height * 0.5;
+      let sx = (img.width - cw)/2, sy = (img.height - ch)/2;
+      let c = document.createElement('canvas'), ctx = c.getContext('2d');
+      c.width = cw; c.height = ch;
+      ctx.drawImage(img, sx, sy, cw, ch, 0, 0, cw, ch);
+      let data = ctx.getImageData(0,0,cw,ch).data;
       whiteBalance(data);
-      let hSum=0,sSum=0,cnt=0;
+      let hSum=0, sSum=0, cnt=0;
       for(let i=0;i<data.length;i+=4){
-        let [h,s]=rgbToHsv(data[i],data[i+1],data[i+2]);
-        hSum+=h; sSum+=s; cnt++;
+        let [h,s] = rgbToHsv(data[i], data[i+1], data[i+2]);
+        hSum += h; sSum += s; cnt++;
       }
-      cb({h: hSum/cnt, s: sSum/cnt});
+      cb({ h: hSum/cnt, s: sSum/cnt });
     };
     img.src = URL.createObjectURL(file);
   }
 
   let calib = null;
+
+  // Calibration button
   document.getElementById('btnCal').onclick = ()=>{
-    const p = document.getElementById('pureImg').files[0],
-          s = document.getElementById('saltImg').files[0];
-    if (!p || !s) return alert('Please upload both reference images.');
+    let p = document.getElementById('pureImg').files[0],
+        s = document.getElementById('saltImg').files[0];
+    if(!p||!s) return alert('Please capture or select BOTH reference strips.');
     computeProfile(p, pure=>{
       computeProfile(s, salt=>{
         calib = { pure, salt };
         localStorage.setItem('calib', JSON.stringify(calib));
-        const tc = document.getElementById('testingCard');
-        tc.removeAttribute('disabled');
+        let tc = document.getElementById('testingCard');
         tc.style.opacity = '1';
         tc.style.pointerEvents = 'auto';
-        alert('Calibration saved! Now enter a test name and run Testing.');
+        alert('Calibration saved – you may now run tests.');
       });
     });
   };
 
+  // restore calibration on load
   window.addEventListener('load', ()=>{
-    const stored = localStorage.getItem('calib');
-    if (stored) {
+    let stored = localStorage.getItem('calib');
+    if(stored){
       calib = JSON.parse(stored);
-      const tc = document.getElementById('testingCard');
-      tc.removeAttribute('disabled');
+      let tc = document.getElementById('testingCard');
       tc.style.opacity = '1';
       tc.style.pointerEvents = 'auto';
     }
   });
 
+  // Testing handler
   document.getElementById('testImg').onchange = e=>{
-    const f = e.target.files[0];
-    if (!f || !calib) return;
-    const name = document.getElementById('testName').value.trim() || '—';
+    let f = e.target.files[0];
+    if(!f||!calib) return;
+    let testName = document.getElementById('testName').value.trim() || '—';
     computeProfile(f, test=>{
-      const dP = Math.hypot(test.h - calib.pure.h, test.s - calib.pure.s),
-            dS = Math.hypot(test.h - calib.salt.h, test.s - calib.salt.s),
-            isPure = dP < dS,
-            conf  = Math.abs(dS - dP) / (dS + dP),
-            label = isPure ? 'Pure Milk' : 'Adulterated Milk';
+      let dP = Math.hypot(test.h - calib.pure.h,   test.s - calib.pure.s),
+          dS = Math.hypot(test.h - calib.salt.h,   test.s - calib.salt.s),
+          isPure = dP < dS,
+          conf   = Math.abs(dS - dP)/(dS + dP),
+          label  = isPure ? 'Pure Milk' : 'Adulterated Milk';
+
       document.getElementById('result').innerHTML = `
         <div class="card shadow-sm">
           <div class="card-body">
             <h5 class="card-title text-${isPure?'success':'danger'}">
               ${label}
             </h5>
-            <p class="card-text"><strong>Test Name:</strong> ${name}</p>
+            <p class="card-text"><strong>Test:</strong> ${testName}</p>
             <p class="card-text"><strong>Confidence:</strong> ${(conf*100).toFixed(1)}%</p>
           </div>
         </div>`;
